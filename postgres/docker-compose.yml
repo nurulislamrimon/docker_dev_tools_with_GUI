@@ -31,3 +31,6 @@ volumes:
     driver: local
   pgadmin_data:
     driver: local
+networks:
+  internal:
+    driver: bridge

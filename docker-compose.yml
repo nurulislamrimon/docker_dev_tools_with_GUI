@@ -1,0 +1,196 @@
+# Define volumes and networks
+volumes:
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+  mongo_data:
+    driver: local
+  mysql_data:
+    driver: local
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+  pgbouncer_data:
+    driver: local
+
+networks:
+  bull-network:
+    driver: bridge
+
+services:
+  # redis
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - bull-network
+  # bullmq dashboard
+  bullboard:
+    image: deadly0/bull-board:latest
+    container_name: bullboard
+    restart: unless-stopped
+    ports:
+      - "8090:3000"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - redis
+    networks:
+      - bull-network
+  # redis commander dashboard
+  redis-commander:
+    image: ghcr.io/joeferner/redis-commander:latest
+    container_name: dev_redis_commander
+    restart: always
+    ports:
+      - "8083:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+      HTTP_USER: root
+      HTTP_PASSWORD: admin
+    depends_on:
+      - redis
+    networks:
+      - bull-network
+
+  # mailhog
+  mailhog:
+    image: mailhog/mailhog
+    container_name: dev_mailhog
+    restart: always
+    ports:
+      - "1025:1025"
+      - "8085:8025"
+
+  # minio object storage
+  minio:
+    image: minio/minio
+    container_name: dev_minio
+    restart: always
+    environment:
+      MINIO_ROOT_USER: root
+      MINIO_ROOT_PASSWORD: adminpass
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "8086:9001"
+    volumes:
+      - minio_data:/data
+
+  # mongodb
+  mongo:
+    image: mongo:7
+    container_name: dev_mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+  # basic auth
+  # environment:
+  #   MONGO_INITDB_ROOT_USERNAME: admin
+  #   MONGO_INITDB_ROOT_PASSWORD: pass
+
+  # mongodb express dashboard
+  mongo-express:
+    image: mongo-express:latest
+    container_name: dev_mongo_express
+    restart: always
+    ports:
+      - "8082:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      # ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      # ME_CONFIG_MONGODB_ADMINPASSWORD: pass
+    depends_on:
+      - mongo
+
+  # mysql
+  mysql:
+    image: mysql:8
+    container_name: dev_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      # MYSQL_DATABASE: my_app
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+  # phpmyadmin dashboard
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: dev_phpmyadmin
+    restart: always
+    ports:
+      - "8087:80"
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: admin
+      PMA_ARBITRARY: 1
+    depends_on:
+      - mysql
+
+  # postgres
+  postgres:
+    image: postgres:16
+    container_name: dev_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: admin
+      # POSTGRES_DB: appdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # pgadmin dashboard
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: dev_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8081:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+
+  pgbouncer:
+    image: edoburu/pgbouncer
+    container_name: dev_pgbouncer
+    restart: always
+    ports:
+      - "6432:6432"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: root
+      DB_PASSWORD: admin
+      DB_NAME: "*"
+
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 50
+      MIN_POOL_SIZE: 10
+      RESERVE_POOL_SIZE: 20
+      SERVER_RESET_QUERY: DISCARD ALL
+      IGNORE_STARTUP_PARAMETERS: extra_float_digits
+
+      ADMIN_USERS: root
+    depends_on:
+      - postgres
+    networks:
+      - bull-network
