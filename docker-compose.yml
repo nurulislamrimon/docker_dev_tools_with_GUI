@@ -18,6 +18,8 @@ volumes:
 networks:
   bull-network:
     driver: bridge
+  app-network:
+    external: true
 
 services:
   # redis
@@ -31,6 +33,7 @@ services:
       - redis_data:/data
     networks:
       - bull-network
+      - app-network
   # bullmq dashboard
   bullboard:
     image: deadly0/bull-board:latest
@@ -45,6 +48,7 @@ services:
       - redis
     networks:
       - bull-network
+      - app-network
   # redis commander dashboard
   redis-commander:
     image: ghcr.io/joeferner/redis-commander:latest
@@ -60,12 +64,15 @@ services:
       - redis
     networks:
       - bull-network
+      - app-network
 
   # mailhog
   mailhog:
     image: mailhog/mailhog
     container_name: dev_mailhog
     restart: always
+    networks:
+      - app-network
     ports:
       - "1025:1025"
       - "8085:8025"
@@ -75,6 +82,8 @@ services:
     image: minio/minio
     container_name: dev_minio
     restart: always
+    networks:
+      - app-network
     environment:
       MINIO_ROOT_USER: root
       MINIO_ROOT_PASSWORD: adminpass
@@ -90,6 +99,8 @@ services:
     image: mongo:7
     container_name: dev_mongo
     restart: always
+    networks:
+      - app-network
     ports:
       - "27017:27017"
     volumes:
@@ -104,6 +115,8 @@ services:
     image: mongo-express:latest
     container_name: dev_mongo_express
     restart: always
+    networks:
+      - app-network
     ports:
       - "8082:8081"
     environment:
@@ -118,6 +131,8 @@ services:
     image: mysql:8
     container_name: dev_mysql
     restart: always
+    networks:
+      - app-network
     environment:
       MYSQL_ROOT_PASSWORD: admin
       # MYSQL_DATABASE: my_app
@@ -130,6 +145,8 @@ services:
     image: phpmyadmin/phpmyadmin:latest
     container_name: dev_phpmyadmin
     restart: always
+    networks:
+      - app-network
     ports:
       - "8087:80"
     environment:
@@ -144,6 +161,8 @@ services:
     image: postgres:16
     container_name: dev_postgres
     restart: always
+    networks:
+      - app-network
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: admin
@@ -158,6 +177,8 @@ services:
     image: dpage/pgadmin4:latest
     container_name: dev_pgadmin
     restart: always
+    networks:
+      - app-network
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
       PGADMIN_DEFAULT_PASSWORD: admin
@@ -194,3 +215,4 @@ services:
       - postgres
     networks:
       - bull-network
+      - app-network
