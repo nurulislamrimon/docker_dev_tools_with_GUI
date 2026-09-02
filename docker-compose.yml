@@ -14,6 +14,8 @@ volumes:
     driver: local
   pgbouncer_data:
     driver: local
+  chroma_data:
+    driver: local
 
 networks:
   bull-network:
@@ -141,6 +143,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
   # phpmyadmin dashboard
+
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
     container_name: dev_phpmyadmin
@@ -216,3 +219,15 @@ services:
     networks:
       - bull-network
       - app-network
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chroma-db
+    ports:
+      - "8000:8000"
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    volumes:
+      - chroma_data:/chroma/chroma
+    restart: unless-stopped
